@@ -27,9 +27,22 @@
           center: {lat: -34.397, lng: 150.644},
           zoom: 8
         });
+
+  			google.maps.event.addListener(map, 'click', function(event) {
+  				addMarker(event.latLng, map);
+  			});
+  
+  			function addMarker(location, map) {
+  				// Add the marker at the clicked location, and add the next-available label
+  				// from the array of alphabetical characters.
+  				var marker = new google.maps.Marker({
+  					position: location,
+  					map: map
+  				});
+  			}
       }
+
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-11cVYw52kXbI89jQlVDNaEMEc4ScVHw&callback=initMap"
-    async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-11cVYw52kXbI89jQlVDNaEMEc4ScVHw&callback=initMap"></script>
   </body>
 </html>
