@@ -5,14 +5,19 @@
     <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
     <style>
-      /* Always set the map height explicitly to define the size of the div
-       * element that contains the map. */
       #map {
         height: 100%;
+        width: 50%;
+        float: left;
       }
-      /* Optional: Makes the sample page fill the window. */
+      canvas {
+        border: 1px solid black;
+        position: absolute;
+        top: 0px;
+      }
       html, body {
         height: 100%;
+        width: 100%;
         margin: 0;
         padding: 0;
       }
@@ -20,29 +25,8 @@
   </head>
   <body>
     <div id="map"></div>
-    <script>
-      var map;
-      function initMap() {
-        map = new google.maps.Map(document.getElementById('map'), {
-          center: {lat: -34.397, lng: 150.644},
-          zoom: 8
-        });
-
-  			google.maps.event.addListener(map, 'click', function(event) {
-  				addMarker(event.latLng, map);
-  			});
-  
-  			function addMarker(location, map) {
-  				// Add the marker at the clicked location, and add the next-available label
-  				// from the array of alphabetical characters.
-  				var marker = new google.maps.Marker({
-  					position: location,
-  					map: map
-  				});
-  			}
-      }
-
-    </script>
+    <canvas id="my_canvas"></canvas>
+    <script src="script.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-11cVYw52kXbI89jQlVDNaEMEc4ScVHw&callback=initMap"></script>
   </body>
 </html>
