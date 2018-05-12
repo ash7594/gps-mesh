@@ -1,6 +1,10 @@
 var map;
 var markers = [];
 var points = [];
+var blockers = [];
+// 1 - Perimeter
+// 0 - Blocker
+var polygon_type = -1;
 
 var canvas = document.getElementById("my_canvas");
 var ctx = canvas.getContext("2d");
@@ -16,8 +20,14 @@ function initMap() {
 	});
 
 	google.maps.event.addListener(map, 'click', function(event) {
-		addMarker(event.latLng, map);
-    points.push(latLng2Point(event.latLng, map));
+    if (polygon_type == -1)
+      return;
+
+    addMarker(event.latLng, map);
+    if (polygon_type == 1)
+      points[points.length-1].push(latLng2Point(event.latLng, map));
+    else if (polygon_type == 0)
+      blockers[blockers.length-1].push(latLng2Point(event.latLng, map));
     drawConnectors();
 	});
 }
@@ -49,23 +59,51 @@ function point2LatLng(point, map) {
 function drawConnectors() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  ctx.beginPath();
-  ctx.moveTo(points[0].x, points[0].y);
-  for (var i=1; i<points.length; i+=1) {
-    ctx.lineTo(points[i].x, points[i].y);
-  }
-  ctx.closePath();
-  ctx.stroke(); 
-  
-  for (i in points) {
+  for (var i = 0; i < points.length; i++) {
     ctx.beginPath();
-    ctx.arc(points[i].x, points[i].y, 2, 0, 2*Math.PI);
+    ctx.moveTo(points[i][0].x, points[i][0].y);
+    for (var j = 1; j < points[i].length; j++) {
+      ctx.lineTo(points[i][j].x, points[i][j].y);
+    }
     ctx.closePath();
-    ctx.fill();
+    ctx.stroke();
   }
+  
+  for (var i = 0; i < points.length; i++) {
+    for (var j = 0; j < points[i].length; j++) {
+      ctx.beginPath();
+      ctx.arc(points[i][j].x, points[i][j].y, 2, 0, 2*Math.PI);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  ctx.strokeStyle = "rgb(255, 0, 0)";
+  ctx.fillStyle = "rgb(255, 0, 0)";
+  for (var i = 0; i < blockers.length; i++) {
+    ctx.beginPath();
+    ctx.moveTo(blockers[i][0].x, blockers[i][0].y);
+    for (var j = 1; j < blockers[i].length; j++) {
+      ctx.lineTo(blockers[i][j].x, blockers[i][j].y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+  
+  for (var i = 0; i < blockers.length; i++) {
+    for (var j = 0; j < blockers[i].length; j++) {
+      ctx.beginPath();
+      ctx.arc(blockers[i][j].x, blockers[i][j].y, 2, 0, 2*Math.PI);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+  
+  ctx.strokeStyle = "rgb(0, 0, 0)";
+  ctx.fillStyle = "rgb(0, 0, 0)";
 }
 
-var angle = 90;
+var angle = 0;
 var separation_distance = 10;
 
 function compareFunc(a, b) {
@@ -73,13 +111,29 @@ function compareFunc(a, b) {
     return -1;
   if (a[0] > b[0])
     return 1;
+  if (a[0] == b[0]) {
+    if (a[1] < b[1])
+      return -1;
+    if (a[1] > b[1])
+      return 1;
+  }
   return 0;
 }
 
+function perimeter() {
+  points.push([]);
+  polygon_type = 1;
+}
+
+function blocker() {
+  blockers.push([]);
+  polygon_type = 0;
+}
+
 function generate() {
-  var x = points[0].x;
-  var y = points[0].y;
-  var intersection_points = getUniqueIntersectionsWithPolygon(x, y);
+  var x = points[0][0].x;
+  var y = points[0][0].y;
+  var intersection_points = getUniqueIntersectionsWithAllPolygons(x, y);
   if (isValidIntersection(intersection_points))
     generateLine(intersection_points);
 
@@ -88,7 +142,7 @@ function generate() {
   while (true) {
     x1 -= separation_distance*Math.sin(angle*Math.PI/180);
     y1 += separation_distance*Math.cos(angle*Math.PI/180);
-    intersection_points = getUniqueIntersectionsWithPolygon(x1, y1);
+    intersection_points = getUniqueIntersectionsWithAllPolygons(x1, y1);
     if (isValidIntersection(intersection_points))
       generateLine(intersection_points);
     else
@@ -100,7 +154,7 @@ function generate() {
   while (true) {
     x2 += separation_distance*Math.sin(angle*Math.PI/180);
     y2 -= separation_distance*Math.cos(angle*Math.PI/180);
-    intersection_points = getUniqueIntersectionsWithPolygon(x2, y2);
+    intersection_points = getUniqueIntersectionsWithAllPolygons(x2, y2);
     if (isValidIntersection(intersection_points))
       generateLine(intersection_points);
     else
@@ -116,11 +170,44 @@ function isValidIntersection(intersection_points) {
   return false;
 }
 
-function getUniqueIntersectionsWithPolygon(x1, y1) {
+function getUniqueIntersectionsWithAllPolygons(x1, y1) {
+  var duplicated_intersection_points = [];
+  for (var i = 0; i < points.length; i++) {
+    var intersect = getUniqueIntersectionsWithPolygon(points[i], x1, y1);
+    for (var j = 0; j < intersect.length; j++) {
+      duplicated_intersection_points.push(intersect[j]);
+    }
+  }
+  for (var i = 0; i < blockers.length; i++) {
+    var intersect = getUniqueIntersectionsWithPolygon(blockers[i], x1, y1);
+    for (var j = 0; j < intersect.length; j++) {
+      duplicated_intersection_points.push(intersect[j]);
+    }
+  }
+
+  duplicated_intersection_points.sort(compareFunc);
+  console.log(duplicated_intersection_points);
+
+  var intersection_points = [];
+  for (var i = 0; i < duplicated_intersection_points.length;) {
+    var [_x, _y] = duplicated_intersection_points[i];
+    intersection_points.push(duplicated_intersection_points[i]);
+    for (i++; i < duplicated_intersection_points.length; i++) {
+      var [_x2, _y2] = duplicated_intersection_points[i];
+      if (_x == _x2 && _y == _y2)
+        continue;
+      break;
+    }
+  }
+  console.log(intersection_points);
+  return intersection_points;
+}
+
+function getUniqueIntersectionsWithPolygon(polygon, x1, y1) {
   var [x2, y2] = getPointOnLine(x1, y1, angle);
 
   console.log(x1 + ", " + y1 + ", " + x2 + ", " + y2);
-  var duplicated_intersection_points = getIntersectionPointsWithPolygon(x1, y1, x2, y2);
+  var duplicated_intersection_points = getIntersectionPointsWithPolygon(polygon, x1, y1, x2, y2);
 
   duplicated_intersection_points.sort(compareFunc);
   console.log(duplicated_intersection_points);
@@ -144,7 +231,10 @@ function generateLine(intersection_points) {
   for (var i = 0; i < intersection_points.length-1; i++) {
     var [_x1, _y1] = intersection_points[i];
     var [_x2, _y2] = intersection_points[(i+1)];
-    var inside = isPointWithinPolygon((_x1+_x2)/2, (_y1+_y2)/2);
+    var inside = isPointWithinAnyPolygon(blockers, (_x1+_x2)/2, (_y1+_y2)/2);
+    if (inside)
+      continue;
+    inside = isPointWithinAnyPolygon(points, (_x1+_x2)/2, (_y1+_y2)/2);
     if (!inside)
       continue;
     ctx.beginPath();
@@ -154,18 +244,26 @@ function generateLine(intersection_points) {
   }
 }
 
-function isPointWithinPolygon(x0, y0) {
-  for (var i = 0; i < points.length; i++) {
-    var x = points[i].x;
-    var y = points[i].y;
+function isPointWithinAnyPolygon(polygons, x0, y0) {
+  for (var i = 0; i < polygons.length; i++) {
+    if (isPointWithinPolygon(polygons[i], x0, y0))
+      return true;
+  }
+  return false;
+}
+
+function isPointWithinPolygon(polygon, x0, y0) {
+  for (var i = 0; i < polygon.length; i++) {
+    var x = polygon[i].x;
+    var y = polygon[i].y;
     if (x0 == x && y0 == y)
       return true;
   }
   
   var vectors = [];
-  for (var i = 0; i < points.length; i++) {
-    var x = points[i].x;
-    var y = points[i].y;
+  for (var i = 0; i < polygon.length; i++) {
+    var x = polygon[i].x;
+    var y = polygon[i].y;
     vectors.push([y-y0, x-x0]);
   }
 
@@ -194,12 +292,12 @@ function getPointOnLine(x, y, angle) {
   return [x2, y2];
 }
 
-function getIntersectionPointsWithPolygon(x1, y1, x2, y2) {
+function getIntersectionPointsWithPolygon(polygon, x1, y1, x2, y2) {
   var intersection_points = [];
-  var l = points.length;
+  var l = polygon.length;
   for (var i = 0; i < l; i++) {
     var point = getIntersectionPointIfExists(x1, y1, x2, y2,
-        points[i].x, points[i].y, points[(i+1)%l].x, points[(i+1)%l].y);
+        polygon[i].x, polygon[i].y, polygon[(i+1)%l].x, polygon[(i+1)%l].y);
     if (point.length != 0) {
       intersection_points.push(point);
     }

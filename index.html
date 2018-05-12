@@ -5,7 +5,7 @@
     <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
     <style>
-      #gen {
+      #buttons {
         position: absolute;
         left: 0px;
         z-index: 1000;
@@ -29,8 +29,12 @@
   </head>
   <body>
     <div id="map"></div>
-    <canvas id="my_canvas"></canvas> 
-    <button id="gen" type="button" onclick="generate()">gen</button>
+    <canvas id="my_canvas"></canvas>
+    <div id="buttons">
+      <button id="gen" type="button" onclick="generate()">gen</button>
+      <br><button id="perimeter" type="button" onclick="perimeter()">perimeter</button>
+      <br><button id="blocker" type="button" onclick="blocker()">blocker</button>
+    </div>
     <script src="script.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-11cVYw52kXbI89jQlVDNaEMEc4ScVHw&callback=initMap"></script>
   </body>
