@@ -5,13 +5,17 @@
     <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
     <style>
+      #gen {
+        position: absolute;
+        left: 0px;
+        z-index: 1000;
+      }
       #map {
         height: 100%;
         width: 50%;
         float: left;
       }
       canvas {
-        border: 1px solid black;
         position: absolute;
         top: 0px;
       }
@@ -25,7 +29,8 @@
   </head>
   <body>
     <div id="map"></div>
-    <canvas id="my_canvas"></canvas>
+    <canvas id="my_canvas"></canvas> 
+    <button id="gen" type="button" onclick="generate()">gen</button>
     <script src="script.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-11cVYw52kXbI89jQlVDNaEMEc4ScVHw&callback=initMap"></script>
   </body>
