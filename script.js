@@ -111,6 +111,7 @@ function parseFile(text) {
     }
   }
 
+  map.panTo(markerPoints[0].position);
   mapView.panTo(markerPoints[0].position);
   mapView.setZoom(16);
   console.log("Parsing done.");
@@ -147,6 +148,8 @@ function initMap() {
       blockers[blockers.length-1].push(latLng2Point(event.latLng, map));
     drawConnectors();
 	});
+
+  console.log("Maps inited.");
 }
 
 function addMarker(location, map, polyType) {
