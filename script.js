@@ -1,4 +1,4 @@
-var map;
+var map, mapView;
 var markerPoints = [];
 var markerBlockers = [];
 var points = [];
@@ -12,10 +12,23 @@ var ctx = canvas.getContext("2d");
 
 canvas.width = window.innerWidth/2;
 canvas.height = window.innerHeight;
-canvas.style.left = canvas.width + "px";
+
+function download(filename, text) {
+  var element = document.createElement('a');
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', filename);
+  element.style.display = 'none';
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
+}
 
 function initMap() {
 	map = new google.maps.Map(document.getElementById('map'), {
+    center: {lat: -33.876656, lng: 151.212477},
+		zoom: 100
+	});
+	mapView = new google.maps.Map(document.getElementById('map_view'), {
 		center: {lat: -34.397, lng: 150.644},
 		zoom: 8
 	});
@@ -127,9 +140,23 @@ function drawConnectors() {
   ctx.fillStyle = "rgb(0, 0, 0)";
 }
 
+// CONTROLS
+
 var angle = 0;
-var separation_distance = 10;
-var point_distance = 1000;
+var separation_distance = 2;
+var point_distance = 2;
+
+function updateAngle(input) {
+	angle = input;
+}
+
+function updateSeparationDistance(input) {
+	separation_distance = input;
+}
+
+function updatePointDistance(input) {
+	point_distance = input;
+}
 
 function compareFunc(a, b) {
   if (a[0] < b[0])
@@ -155,26 +182,33 @@ function blocker() {
   polygon_type = 0;
 }
 
-function computeDistanceInPixel(polygon, marker) {
+function computeDistanceInPixel(polygon, marker, dist) {
   var distAct = getDistance(marker[0].position, marker[1].position);
   console.log("Map distance: " + distAct);
 
   var distVirt = Math.sqrt(
     Math.pow(polygon[0].x - polygon[1].x, 2)
-    + Math.pow(polygon[0].x - polygon[1].x, 2)
+    + Math.pow(polygon[0].y - polygon[1].y, 2)
   );
   console.log("Canvas distance: " + distVirt);
 
-  return point_distance / distAct * distVirt;
+  return dist / distAct * distVirt;
 }
 
 function generate() {
+	console.log("CONTROLS");
+	console.log("Sweep orientation: " + angle);
+	console.log("Sweep distance: " + separation_distance);
+	console.log("Waypoint separation: " + point_distance);
+
   // Get scale
   var dpp;
   if (points.length > 0 && points[0].length > 1)
-    dpp = computeDistanceInPixel(points[0], markerPoints);
+    dpp = computeDistanceInPixel(points[0], markerPoints, point_distance);
   else
     return;
+
+	var virtual_separation_distance = computeDistanceInPixel(points[0], markerPoints, separation_distance);
 
   var x = points[0][0].x;
   var y = points[0][0].y;
@@ -185,8 +219,8 @@ function generate() {
   var x1 = x;
   var y1 = y;
   while (true) {
-    x1 -= separation_distance*Math.sin(angle*Math.PI/180);
-    y1 += separation_distance*Math.cos(angle*Math.PI/180);
+    x1 -= virtual_separation_distance*Math.sin(angle*Math.PI/180);
+    y1 += virtual_separation_distance*Math.cos(angle*Math.PI/180);
     intersection_points = getUniqueIntersectionsWithAllPolygons(x1, y1);
     if (isValidIntersection(intersection_points))
       generateLine(intersection_points, dpp);
@@ -197,8 +231,8 @@ function generate() {
   var x2 = x;
   var y2 = y;
   while (true) {
-    x2 += separation_distance*Math.sin(angle*Math.PI/180);
-    y2 -= separation_distance*Math.cos(angle*Math.PI/180);
+    x2 += virtual_separation_distance*Math.sin(angle*Math.PI/180);
+    y2 -= virtual_separation_distance*Math.cos(angle*Math.PI/180);
     intersection_points = getUniqueIntersectionsWithAllPolygons(x2, y2);
     if (isValidIntersection(intersection_points))
       generateLine(intersection_points, dpp);
@@ -296,7 +330,7 @@ function generateLine(intersection_points, distance_in_pixel) {
     var counter = 0;
     do {
       ctx.beginPath();
-      ctx.arc(x, y, 3, 0, 2*Math.PI);
+      ctx.arc(x, y, 2, 0, 2*Math.PI);
       ctx.closePath();
       ctx.fill();
 
@@ -312,7 +346,15 @@ function generateLine(intersection_points, distance_in_pixel) {
       counter++;
     } while (counter <= num_counts);
 
-    var latLng = point2LatLng(_x2, _y2, map);
+		x = _x2;
+		y = _y2;
+
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, 2*Math.PI);
+    ctx.closePath();
+    ctx.fill();
+    
+		var latLng = point2LatLng(x, y, map);
     new google.maps.Marker({
       position: latLng,
       map: map

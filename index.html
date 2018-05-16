@@ -5,10 +5,28 @@
     <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
     <style>
+      #visible_container {
+        height: 100%;
+        width: 100%;
+      }
+      #controls {
+        padding: 20px;
+        float: left;
+      }
+      #hidden_container {
+        height: 100%;
+        width: 100%;
+      }
       #buttons {
-        position: absolute;
+        position: relative;
+        top: 0px;
         left: 0px;
-        z-index: 1000;
+        z-index: 100;
+      }
+      #map_view {
+        height: 100%;
+        width: 50%;
+        float: right;
       }
       #map {
         height: 100%;
@@ -16,8 +34,7 @@
         float: left;
       }
       canvas {
-        position: absolute;
-        top: 0px;
+        float: right;
       }
       html, body {
         height: 100%;
@@ -28,12 +45,38 @@
     </style>
   </head>
   <body>
-    <div id="map"></div>
-    <canvas id="my_canvas"></canvas>
-    <div id="buttons">
-      <button id="gen" type="button" onclick="generate()">gen</button>
-      <br><button id="perimeter" type="button" onclick="perimeter()">perimeter</button>
-      <br><button id="blocker" type="button" onclick="blocker()">blocker</button>
+    <div id="visible_container">
+      <div id="controls">
+        <div id="sweepo">
+          <span>Sweep Orientation:&nbsp</span>
+          <input id="angleInput" type="range" value="0" min="0" max="359" step="1" oninput="angleOutput.value=this.value" onchange="updateAngle(this.value)" />
+          <output id="angleOutput">0</output>
+        </div>
+        <br>
+        <div id="sweepd">
+          <span>Sweep Distance:&nbsp</span>
+          <input type="number" value="2" min="1" onchange="updateSeparationDistance(this.value)" />
+          <span>Meters (m)</span>
+        </div>
+        <br>
+        <div id="wayPointS">
+          <span>Waypoint separation:&nbsp</span>
+          <input type="number" value="2" min="1" onchange="updatePointDistance(this.value)" />
+          <span>Meters (m)</span>
+        </div>
+        <br>
+        <button id="generate" type="button" onclick="text=generate();download('hello.txt','hello')">GENERATE</button>
+      </div>
+      <div id="map_view"></div>
+    </div>
+    <div id="hidden_container">
+      <div id="buttons">
+        <button id="gen" type="button" onclick="generate()">gen</button>
+        <br><button id="perimeter" type="button" onclick="perimeter()">perimeter</button>
+        <br><button id="blocker" type="button" onclick="blocker()">blocker</button>
+      </div>
+      <div id="map"></div>
+      <canvas id="my_canvas"></canvas>
     </div>
     <script src="script.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-11cVYw52kXbI89jQlVDNaEMEc4ScVHw&callback=initMap"></script>
