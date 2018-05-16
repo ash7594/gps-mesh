@@ -16,6 +16,7 @@
       #hidden_container {
         height: 100%;
         width: 100%;
+        visibility: hidden;
       }
       #buttons {
         position: relative;
@@ -41,12 +42,18 @@
         width: 100%;
         margin: 0;
         padding: 0;
+        overflow: hidden;
       }
     </style>
   </head>
   <body>
     <div id="visible_container">
       <div id="controls">
+        <div id="input">
+          <span>Input File:&nbsp</span>
+          <input id="inputFile" type="file" />
+        </div>
+        <br>
         <div id="sweepo">
           <span>Sweep Orientation:&nbsp</span>
           <input id="angleInput" type="range" value="0" min="0" max="359" step="1" oninput="angleOutput.value=this.value" onchange="updateAngle(this.value)" />
@@ -65,13 +72,12 @@
           <span>Meters (m)</span>
         </div>
         <br>
-        <button id="generate" type="button" onclick="text=generate();download('hello.txt','hello')">GENERATE</button>
+        <button id="generate" type="button" onclick="text=generate();download('plot.txt',text)">GENERATE</button>
       </div>
       <div id="map_view"></div>
     </div>
     <div id="hidden_container">
       <div id="buttons">
-        <button id="gen" type="button" onclick="generate()">gen</button>
         <br><button id="perimeter" type="button" onclick="perimeter()">perimeter</button>
         <br><button id="blocker" type="button" onclick="blocker()">blocker</button>
       </div>

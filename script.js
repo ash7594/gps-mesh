@@ -7,11 +7,114 @@ var blockers = [];
 // 0 - Blocker
 var polygon_type = -1;
 
+class PointObj {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
 var canvas = document.getElementById("my_canvas");
 var ctx = canvas.getContext("2d");
 
 canvas.width = window.innerWidth/2;
 canvas.height = window.innerHeight;
+
+document.getElementById('inputFile').addEventListener('change', load, false);
+
+function load(evt) {
+	// Check for the various File API support.
+	if (window.File && window.FileReader && window.FileList && window.Blob) {
+		// All the File APIs are supported.
+	} else {
+		alert('The File APIs are not fully supported in this browser.');
+		return;
+	}
+
+	var f = evt.target.files[0];
+	if (f) {
+		var r = new FileReader();
+		r.onload = function(e) { 
+			var text = e.target.result;
+			console.log("File scanned");
+			parseFile(text);
+		}
+		r.readAsText(f);
+	} else { 
+		alert("Failed to load file");
+		return;
+	}
+}
+
+function parseFile(text) {
+  // read perimeter
+  var exs = text.split(/ex\/\//);
+  exs.shift();
+  for (var i = 0; i < exs.length; i++) {
+    var ex = exs[i].split(/\/\/ex/);
+    ex.pop();
+
+    points.push([]);
+
+    var coords = ex[0].split("\n");
+    for (var j = 0; j < coords.length; j++) {
+      var coord = coords[j].trim();
+      if (coord.length == 0)
+        continue;
+      var [lat,lng] = coord.split(",");
+      lat = parseFloat(lat);
+      lng = parseFloat(lng);
+     
+      var latLng = new google.maps.LatLng(lat, lng);
+      new google.maps.Marker({
+        position: latLng,
+        map: mapView
+      });
+      markerPoints.push(new google.maps.Marker({
+        position: latLng,
+        map: map
+      }));
+      
+      points[points.length-1].push(latLng2Point(latLng, map));
+    }
+  }
+
+  // read blockers
+  var ins = text.split(/in\/\//);
+  ins.shift();
+  for (var i = 0; i < ins.length; i++) {
+    var inn = ins[i].split(/\/\/in/);
+    inn.pop();
+
+    blockers.push([]);
+
+    var coords = inn[0].split("\n");
+    for (var j = 0; j < coords.length; j++) {
+      var coord = coords[j].trim();
+      if (coord.length == 0)
+        continue;
+      var [lat,lng] = coord.split(",");
+      lat = parseFloat(lat);
+      lng = parseFloat(lng);
+      var latLng = new google.maps.LatLng(lat, lng);
+      
+      new google.maps.Marker({
+        position: latLng,
+        map: mapView
+      });
+      markerBlockers.push(new google.maps.Marker({
+        position: latLng,
+        map: map
+      }));
+      
+      blockers[blockers.length-1].push(latLng2Point(latLng, map));
+    }
+  }
+
+  mapView.panTo(markerPoints[0].position);
+  mapView.setZoom(16);
+  console.log("Parsing done.");
+}
 
 function download(filename, text) {
   var element = document.createElement('a');
@@ -66,7 +169,7 @@ function latLng2Point(latLng, map) {
   var bottomLeft = map.getProjection().fromLatLngToPoint(map.getBounds().getSouthWest());
   var scale = Math.pow(2, map.getZoom());
   var worldPoint = map.getProjection().fromLatLngToPoint(latLng);
-  return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
+  return new PointObj((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
 }
 
 function point2LatLng(x, y, map) {
@@ -201,12 +304,14 @@ function generate() {
 	console.log("Sweep distance: " + separation_distance);
 	console.log("Waypoint separation: " + point_distance);
 
+	var output_text = "";
+
   // Get scale
   var dpp;
   if (points.length > 0 && points[0].length > 1)
     dpp = computeDistanceInPixel(points[0], markerPoints, point_distance);
   else
-    return;
+    return "Error: No known perimeter specified.";
 
 	var virtual_separation_distance = computeDistanceInPixel(points[0], markerPoints, separation_distance);
 
@@ -214,7 +319,7 @@ function generate() {
   var y = points[0][0].y;
   var intersection_points = getUniqueIntersectionsWithAllPolygons(x, y);
   if (isValidIntersection(intersection_points))
-    generateLine(intersection_points, dpp);
+    output_text += generateLine(intersection_points, dpp);
 
   var x1 = x;
   var y1 = y;
@@ -223,7 +328,7 @@ function generate() {
     y1 += virtual_separation_distance*Math.cos(angle*Math.PI/180);
     intersection_points = getUniqueIntersectionsWithAllPolygons(x1, y1);
     if (isValidIntersection(intersection_points))
-      generateLine(intersection_points, dpp);
+      output_text += generateLine(intersection_points, dpp);
     else
       break;
   }
@@ -235,12 +340,15 @@ function generate() {
     y2 -= virtual_separation_distance*Math.cos(angle*Math.PI/180);
     intersection_points = getUniqueIntersectionsWithAllPolygons(x2, y2);
     if (isValidIntersection(intersection_points))
-      generateLine(intersection_points, dpp);
+      output_text += generateLine(intersection_points, dpp);
     else
       break;
   }
 
+	output_text += ".end";
+
   console.log("Done...");
+	return output_text;
 }
 
 function isValidIntersection(intersection_points) {
@@ -307,6 +415,7 @@ function getUniqueIntersectionsWithPolygon(polygon, x1, y1) {
 }
 
 function generateLine(intersection_points, distance_in_pixel) {
+	var output_text = "";
   for (var i = 0; i < intersection_points.length-1; i++) {
     var [_x1, _y1] = intersection_points[i];
     var [_x2, _y2] = intersection_points[(i+1)];
@@ -316,6 +425,8 @@ function generateLine(intersection_points, distance_in_pixel) {
     inside = isPointWithinAnyPolygon(points, (_x1+_x2)/2, (_y1+_y2)/2);
     if (!inside)
       continue;
+
+		output_text += "plot//\n";
 
     var lineNorm = Math.sqrt(Math.pow(_x2-_x1, 2) + Math.pow(_y2-_y1, 2));
     var unitX = (_x2-_x1)/lineNorm;
@@ -339,6 +450,12 @@ function generateLine(intersection_points, distance_in_pixel) {
         position: latLng,
         map: map
       });
+      new google.maps.Marker({
+        position: latLng,
+        map: mapView
+      });
+
+			output_text += latLng.lat() + ", " + latLng.lng() + "\n";
 
       x += adderX;
       y += adderY;
@@ -359,12 +476,20 @@ function generateLine(intersection_points, distance_in_pixel) {
       position: latLng,
       map: map
     });
-    
+    new google.maps.Marker({
+      position: latLng,
+      map: mapView
+    });
+		
+		output_text += latLng.lat() + ", " + latLng.lng() + "\n";
+		output_text += "//plot\n\n";
+
     ctx.beginPath();
     ctx.moveTo(_x1, _y1);
     ctx.lineTo(_x2, _y2);
     ctx.stroke();
   }
+	return output_text;
 }
 
 function isPointWithinAnyPolygon(polygons, x0, y0) {
