@@ -1,5 +1,6 @@
 var map;
-var markers = [];
+var markerPoints = [];
+var markerBlockers = [];
 var points = [];
 var blockers = [];
 // 1 - Perimeter
@@ -23,7 +24,7 @@ function initMap() {
     if (polygon_type == -1)
       return;
 
-    addMarker(event.latLng, map);
+    addMarker(event.latLng, map, polygon_type);
     if (polygon_type == 1)
       points[points.length-1].push(latLng2Point(event.latLng, map));
     else if (polygon_type == 0)
@@ -32,12 +33,19 @@ function initMap() {
 	});
 }
 
-function addMarker(location, map) {
-	console.log(location.lat());
-	markers.push(new google.maps.Marker({
-		position: location,
-		map: map
-	}));
+function addMarker(location, map, polyType) {
+  console.log(location.lat());
+  if (polyType == 1) {
+    markerPoints.push(new google.maps.Marker({
+      position: location,
+      map: map
+    }));
+  } else if (polyType == 0) {
+    markerBlockers.push(new google.maps.Marker({
+      position: location,
+      map: map
+    }));
+  }
 }
 
 function latLng2Point(latLng, map) {
@@ -48,13 +56,29 @@ function latLng2Point(latLng, map) {
   return new google.maps.Point((worldPoint.x - bottomLeft.x) * scale, (worldPoint.y - topRight.y) * scale);
 }
 
-function point2LatLng(point, map) {
+function point2LatLng(x, y, map) {
   var topRight = map.getProjection().fromLatLngToPoint(map.getBounds().getNorthEast());
   var bottomLeft = map.getProjection().fromLatLngToPoint(map.getBounds().getSouthWest());
   var scale = Math.pow(2, map.getZoom());
-  var worldPoint = new google.maps.Point(point.x / scale + bottomLeft.x, point.y / scale + topRight.y);
+  var worldPoint = new google.maps.Point(x / scale + bottomLeft.x, y / scale + topRight.y);
   return map.getProjection().fromPointToLatLng(worldPoint);
 }
+
+var rad = function(x) {
+  return x * Math.PI / 180;
+};
+
+var getDistance = function(p1, p2) {
+  var R = 6378137; // Earth’s mean radius in meter
+  var dLat = rad(p2.lat() - p1.lat());
+  var dLong = rad(p2.lng() - p1.lng());
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(rad(p1.lat())) * Math.cos(rad(p2.lat())) *
+    Math.sin(dLong / 2) * Math.sin(dLong / 2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  var d = R * c;
+  return d; // returns the distance in meter
+};
 
 function drawConnectors() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -105,6 +129,7 @@ function drawConnectors() {
 
 var angle = 0;
 var separation_distance = 10;
+var point_distance = 1000;
 
 function compareFunc(a, b) {
   if (a[0] < b[0])
@@ -130,12 +155,32 @@ function blocker() {
   polygon_type = 0;
 }
 
+function computeDistanceInPixel(polygon, marker) {
+  var distAct = getDistance(marker[0].position, marker[1].position);
+  console.log("Map distance: " + distAct);
+
+  var distVirt = Math.sqrt(
+    Math.pow(polygon[0].x - polygon[1].x, 2)
+    + Math.pow(polygon[0].x - polygon[1].x, 2)
+  );
+  console.log("Canvas distance: " + distVirt);
+
+  return point_distance / distAct * distVirt;
+}
+
 function generate() {
+  // Get scale
+  var dpp;
+  if (points.length > 0 && points[0].length > 1)
+    dpp = computeDistanceInPixel(points[0], markerPoints);
+  else
+    return;
+
   var x = points[0][0].x;
   var y = points[0][0].y;
   var intersection_points = getUniqueIntersectionsWithAllPolygons(x, y);
   if (isValidIntersection(intersection_points))
-    generateLine(intersection_points);
+    generateLine(intersection_points, dpp);
 
   var x1 = x;
   var y1 = y;
@@ -144,7 +189,7 @@ function generate() {
     y1 += separation_distance*Math.cos(angle*Math.PI/180);
     intersection_points = getUniqueIntersectionsWithAllPolygons(x1, y1);
     if (isValidIntersection(intersection_points))
-      generateLine(intersection_points);
+      generateLine(intersection_points, dpp);
     else
       break;
   }
@@ -156,7 +201,7 @@ function generate() {
     y2 -= separation_distance*Math.cos(angle*Math.PI/180);
     intersection_points = getUniqueIntersectionsWithAllPolygons(x2, y2);
     if (isValidIntersection(intersection_points))
-      generateLine(intersection_points);
+      generateLine(intersection_points, dpp);
     else
       break;
   }
@@ -227,7 +272,7 @@ function getUniqueIntersectionsWithPolygon(polygon, x1, y1) {
   return intersection_points;
 }
 
-function generateLine(intersection_points) {
+function generateLine(intersection_points, distance_in_pixel) {
   for (var i = 0; i < intersection_points.length-1; i++) {
     var [_x1, _y1] = intersection_points[i];
     var [_x2, _y2] = intersection_points[(i+1)];
@@ -237,6 +282,42 @@ function generateLine(intersection_points) {
     inside = isPointWithinAnyPolygon(points, (_x1+_x2)/2, (_y1+_y2)/2);
     if (!inside)
       continue;
+
+    var lineNorm = Math.sqrt(Math.pow(_x2-_x1, 2) + Math.pow(_y2-_y1, 2));
+    var unitX = (_x2-_x1)/lineNorm;
+    var unitY = (_y2-_y1)/lineNorm;
+    var adderX = distance_in_pixel * unitX;
+    var adderY = distance_in_pixel * unitY;
+
+    var num_counts = Math.floor(lineNorm / distance_in_pixel);
+
+    var x = _x1;
+    var y = _y1;
+    var counter = 0;
+    do {
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, 2*Math.PI);
+      ctx.closePath();
+      ctx.fill();
+
+      var latLng = point2LatLng(x, y, map);
+      new google.maps.Marker({
+        position: latLng,
+        map: map
+      });
+
+      x += adderX;
+      y += adderY;
+
+      counter++;
+    } while (counter <= num_counts);
+
+    var latLng = point2LatLng(_x2, _y2, map);
+    new google.maps.Marker({
+      position: latLng,
+      map: map
+    });
+    
     ctx.beginPath();
     ctx.moveTo(_x1, _y1);
     ctx.lineTo(_x2, _y2);
