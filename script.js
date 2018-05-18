@@ -57,6 +57,7 @@ function parseFile(text) {
     points.push([]);
 
     var coords = ex[0].split("\n");
+    var pathTrace = [];
     for (var j = 0; j < coords.length; j++) {
       var coord = coords[j].trim();
       if (coord.length == 0)
@@ -66,10 +67,8 @@ function parseFile(text) {
       lng = parseFloat(lng);
      
       var latLng = new google.maps.LatLng(lat, lng);
-      new google.maps.Marker({
-        position: latLng,
-        map: mapView
-      });
+      pathTrace.push(latLng);
+
       markerPoints.push(new google.maps.Marker({
         position: latLng,
         map: map
@@ -77,6 +76,18 @@ function parseFile(text) {
       
       points[points.length-1].push(latLng2Point(latLng, map));
     }
+
+		if (pathTrace.length > 0) {
+			pathTrace.push(pathTrace[0]);
+			var mapPath = new google.maps.Polyline({
+				path: pathTrace,
+				geodesic: true,
+				strokeColor: '#FF0000',
+				strokeOpacity: 1.0,
+				strokeWeight: 2
+			});
+			mapPath.setMap(mapView);
+		}
   }
 
   // read blockers
@@ -89,6 +100,7 @@ function parseFile(text) {
     blockers.push([]);
 
     var coords = inn[0].split("\n");
+    var pathTrace = [];
     for (var j = 0; j < coords.length; j++) {
       var coord = coords[j].trim();
       if (coord.length == 0)
@@ -96,12 +108,10 @@ function parseFile(text) {
       var [lat,lng] = coord.split(",");
       lat = parseFloat(lat);
       lng = parseFloat(lng);
-      var latLng = new google.maps.LatLng(lat, lng);
       
-      new google.maps.Marker({
-        position: latLng,
-        map: mapView
-      });
+			var latLng = new google.maps.LatLng(lat, lng);
+      pathTrace.push(latLng);
+      
       markerBlockers.push(new google.maps.Marker({
         position: latLng,
         map: map
@@ -109,9 +119,20 @@ function parseFile(text) {
       
       blockers[blockers.length-1].push(latLng2Point(latLng, map));
     }
+
+		if (pathTrace.length > 0) {
+			pathTrace.push(pathTrace[0]);
+			var mapPath = new google.maps.Polyline({
+				path: pathTrace,
+				geodesic: true,
+				strokeColor: '#0000FF',
+				strokeOpacity: 1.0,
+				strokeWeight: 2
+			});
+			mapPath.setMap(mapView);
+		}
   }
 
-  map.panTo(markerPoints[0].position);
   mapView.panTo(markerPoints[0].position);
   mapView.setZoom(16);
   console.log("Parsing done.");
@@ -394,6 +415,7 @@ function getUniqueIntersectionsWithAllPolygons(x1, y1) {
 }
 
 function getUniqueIntersectionsWithPolygon(polygon, x1, y1) {
+  console.log("poly");
   var [x2, y2] = getPointOnLine(x1, y1, angle);
 
   console.log(x1 + ", " + y1 + ", " + x2 + ", " + y2);
@@ -418,7 +440,10 @@ function getUniqueIntersectionsWithPolygon(polygon, x1, y1) {
 }
 
 function generateLine(intersection_points, distance_in_pixel) {
-	var output_text = "";
+	console.log("Intersection:");
+  console.log(intersection_points);
+  
+  var output_text = "";
   for (var i = 0; i < intersection_points.length-1; i++) {
     var [_x1, _y1] = intersection_points[i];
     var [_x2, _y2] = intersection_points[(i+1)];
@@ -430,6 +455,18 @@ function generateLine(intersection_points, distance_in_pixel) {
       continue;
 
 		output_text += "plot//\n";
+
+		var pathTrace = [];
+		pathTrace.push(point2LatLng(_x1, _y1, map));
+		pathTrace.push(point2LatLng(_x2, _y2, map));
+		var mapPath = new google.maps.Polyline({
+			path: pathTrace,
+			geodesic: true,
+			strokeColor: '#FF0000',
+			strokeOpacity: 1.0,
+			strokeWeight: 2
+		});
+		mapPath.setMap(mapView);
 
     var lineNorm = Math.sqrt(Math.pow(_x2-_x1, 2) + Math.pow(_y2-_y1, 2));
     var unitX = (_x2-_x1)/lineNorm;
@@ -449,14 +486,6 @@ function generateLine(intersection_points, distance_in_pixel) {
       ctx.fill();
 
       var latLng = point2LatLng(x, y, map);
-      new google.maps.Marker({
-        position: latLng,
-        map: map
-      });
-      new google.maps.Marker({
-        position: latLng,
-        map: mapView
-      });
 
 			output_text += latLng.lat() + ", " + latLng.lng() + "\n";
 
@@ -475,14 +504,6 @@ function generateLine(intersection_points, distance_in_pixel) {
     ctx.fill();
     
 		var latLng = point2LatLng(x, y, map);
-    new google.maps.Marker({
-      position: latLng,
-      map: map
-    });
-    new google.maps.Marker({
-      position: latLng,
-      map: mapView
-    });
 		
 		output_text += latLng.lat() + ", " + latLng.lng() + "\n";
 		output_text += "//plot\n\n";
@@ -549,6 +570,7 @@ function getIntersectionPointsWithPolygon(polygon, x1, y1, x2, y2) {
   for (var i = 0; i < l; i++) {
     var point = getIntersectionPointIfExists(x1, y1, x2, y2,
         polygon[i].x, polygon[i].y, polygon[(i+1)%l].x, polygon[(i+1)%l].y);
+    console.log("polyLine: " + point);
     if (point.length != 0) {
       intersection_points.push(point);
     }
@@ -567,12 +589,14 @@ function getIntersectionPointIfExists(x11, y11, x12, y12, x21, y21, x22, y22) {
   var C2 = A2*x21 + B2*y21;
 
   var det = A1*B2 - A2*B1;
+  console.log(x11 + ", " + y11 + ", " + x12 + ", " + y12 + ", " + x21 + ", " + y21 + ", " + x22 + ", " + y22);
+  console.log("det: " + det);
   if (det == 0) {
     return [];
   } else {
     var x = (B2*C1 - B1*C2)/det;
     var y = (A1*C2 - A2*C1)/det;
-    if ((x-x21)*(x-x22) <= 0)
+    if ((x-x21)*(x-x22) <= 0 && (y-y21)*(y-y22) <= 0)
       return [x, y];
     return [];
   }
