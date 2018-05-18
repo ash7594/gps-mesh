@@ -23,27 +23,27 @@ canvas.height = window.innerHeight;
 document.getElementById('inputFile').addEventListener('change', load, false);
 
 function load(evt) {
-	// Check for the various File API support.
-	if (window.File && window.FileReader && window.FileList && window.Blob) {
-		// All the File APIs are supported.
-	} else {
-		alert('The File APIs are not fully supported in this browser.');
-		return;
-	}
+  // Check for the various File API support.
+  if (window.File && window.FileReader && window.FileList && window.Blob) {
+    // All the File APIs are supported.
+  } else {
+    alert('The File APIs are not fully supported in this browser.');
+    return;
+  }
 
-	var f = evt.target.files[0];
-	if (f) {
-		var r = new FileReader();
-		r.onload = function(e) { 
-			var text = e.target.result;
-			console.log("File scanned");
-			parseFile(text);
-		}
-		r.readAsText(f);
-	} else { 
-		alert("Failed to load file");
-		return;
-	}
+  var f = evt.target.files[0];
+  if (f) {
+    var r = new FileReader();
+    r.onload = function(e) { 
+      var text = e.target.result;
+      console.log("File scanned");
+      parseFile(text);
+    }
+    r.readAsText(f);
+  } else { 
+    alert("Failed to load file");
+    return;
+  }
 }
 
 function parseFile(text) {
@@ -65,7 +65,7 @@ function parseFile(text) {
       var [lat,lng] = coord.split(",");
       lat = parseFloat(lat);
       lng = parseFloat(lng);
-     
+
       var latLng = new google.maps.LatLng(lat, lng);
       pathTrace.push(latLng);
 
@@ -73,21 +73,21 @@ function parseFile(text) {
         position: latLng,
         map: map
       }));
-      
+
       points[points.length-1].push(latLng2Point(latLng, map));
     }
 
-		if (pathTrace.length > 0) {
-			pathTrace.push(pathTrace[0]);
-			var mapPath = new google.maps.Polyline({
-				path: pathTrace,
-				geodesic: true,
-				strokeColor: '#FF0000',
-				strokeOpacity: 1.0,
-				strokeWeight: 2
-			});
-			mapPath.setMap(mapView);
-		}
+    if (pathTrace.length > 0) {
+      pathTrace.push(pathTrace[0]);
+      var mapPath = new google.maps.Polyline({
+        path: pathTrace,
+        geodesic: true,
+        strokeColor: '#FF0000',
+        strokeOpacity: 1.0,
+        strokeWeight: 2
+      });
+      mapPath.setMap(mapView);
+    }
   }
 
   // read blockers
@@ -108,29 +108,29 @@ function parseFile(text) {
       var [lat,lng] = coord.split(",");
       lat = parseFloat(lat);
       lng = parseFloat(lng);
-      
-			var latLng = new google.maps.LatLng(lat, lng);
+
+      var latLng = new google.maps.LatLng(lat, lng);
       pathTrace.push(latLng);
-      
+
       markerBlockers.push(new google.maps.Marker({
         position: latLng,
         map: map
       }));
-      
+
       blockers[blockers.length-1].push(latLng2Point(latLng, map));
     }
 
-		if (pathTrace.length > 0) {
-			pathTrace.push(pathTrace[0]);
-			var mapPath = new google.maps.Polyline({
-				path: pathTrace,
-				geodesic: true,
-				strokeColor: '#0000FF',
-				strokeOpacity: 1.0,
-				strokeWeight: 2
-			});
-			mapPath.setMap(mapView);
-		}
+    if (pathTrace.length > 0) {
+      pathTrace.push(pathTrace[0]);
+      var mapPath = new google.maps.Polyline({
+        path: pathTrace,
+        geodesic: true,
+        strokeColor: '#0000FF',
+        strokeOpacity: 1.0,
+        strokeWeight: 2
+      });
+      mapPath.setMap(mapView);
+    }
   }
 
   mapView.panTo(markerPoints[0].position);
@@ -149,16 +149,16 @@ function download(filename, text) {
 }
 
 function initMap() {
-	map = new google.maps.Map(document.getElementById('map'), {
+  map = new google.maps.Map(document.getElementById('map'), {
     center: {lat: -33.876656, lng: 151.212477},
-		zoom: 100
-	});
-	mapView = new google.maps.Map(document.getElementById('map_view'), {
-		center: {lat: -34.397, lng: 150.644},
-		zoom: 8
-	});
+    zoom: 100
+  });
+  mapView = new google.maps.Map(document.getElementById('map_view'), {
+    center: {lat: -34.397, lng: 150.644},
+    zoom: 8
+  });
 
-	google.maps.event.addListener(map, 'click', function(event) {
+  google.maps.event.addListener(map, 'click', function(event) {
     if (polygon_type == -1)
       return;
 
@@ -168,7 +168,7 @@ function initMap() {
     else if (polygon_type == 0)
       blockers[blockers.length-1].push(latLng2Point(event.latLng, map));
     drawConnectors();
-	});
+  });
 
   console.log("Maps inited.");
 }
@@ -222,7 +222,7 @@ var getDistance = function(p1, p2) {
 
 function drawConnectors() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+
   for (var i = 0; i < points.length; i++) {
     ctx.beginPath();
     ctx.moveTo(points[i][0].x, points[i][0].y);
@@ -232,7 +232,7 @@ function drawConnectors() {
     ctx.closePath();
     ctx.stroke();
   }
-  
+
   for (var i = 0; i < points.length; i++) {
     for (var j = 0; j < points[i].length; j++) {
       ctx.beginPath();
@@ -253,7 +253,7 @@ function drawConnectors() {
     ctx.closePath();
     ctx.stroke();
   }
-  
+
   for (var i = 0; i < blockers.length; i++) {
     for (var j = 0; j < blockers[i].length; j++) {
       ctx.beginPath();
@@ -262,7 +262,7 @@ function drawConnectors() {
       ctx.fill();
     }
   }
-  
+
   ctx.strokeStyle = "rgb(0, 0, 0)";
   ctx.fillStyle = "rgb(0, 0, 0)";
 }
@@ -274,15 +274,15 @@ var separation_distance = 2;
 var point_distance = 2;
 
 function updateAngle(input) {
-	angle = input;
+  angle = input;
 }
 
 function updateSeparationDistance(input) {
-	separation_distance = input;
+  separation_distance = input;
 }
 
 function updatePointDistance(input) {
-	point_distance = input;
+  point_distance = input;
 }
 
 function compareFunc(a, b) {
@@ -314,21 +314,21 @@ function computeDistanceInPixel(polygon, marker, dist) {
   console.log("Map distance: " + distAct);
 
   var distVirt = Math.sqrt(
-    Math.pow(polygon[0].x - polygon[1].x, 2)
-    + Math.pow(polygon[0].y - polygon[1].y, 2)
-  );
+      Math.pow(polygon[0].x - polygon[1].x, 2)
+      + Math.pow(polygon[0].y - polygon[1].y, 2)
+      );
   console.log("Canvas distance: " + distVirt);
 
   return dist / distAct * distVirt;
 }
 
 function generate() {
-	console.log("CONTROLS");
-	console.log("Sweep orientation: " + angle);
-	console.log("Sweep distance: " + separation_distance);
-	console.log("Waypoint separation: " + point_distance);
+  console.log("CONTROLS");
+  console.log("Sweep orientation: " + angle);
+  console.log("Sweep distance: " + separation_distance);
+  console.log("Waypoint separation: " + point_distance);
 
-	var output_text = "";
+  var output_text = "";
 
   // Get scale
   var dpp;
@@ -337,7 +337,7 @@ function generate() {
   else
     return "Error: No known perimeter specified.";
 
-	var virtual_separation_distance = computeDistanceInPixel(points[0], markerPoints, separation_distance);
+  var virtual_separation_distance = computeDistanceInPixel(points[0], markerPoints, separation_distance);
 
   var x = points[0][0].x;
   var y = points[0][0].y;
@@ -369,10 +369,10 @@ function generate() {
       break;
   }
 
-	output_text += ".end";
+  output_text += ".end";
 
   console.log("Done...");
-	return output_text;
+  return output_text;
 }
 
 function isValidIntersection(intersection_points) {
@@ -440,9 +440,9 @@ function getUniqueIntersectionsWithPolygon(polygon, x1, y1) {
 }
 
 function generateLine(intersection_points, distance_in_pixel) {
-	console.log("Intersection:");
+  console.log("Intersection:");
   console.log(intersection_points);
-  
+
   var output_text = "";
   for (var i = 0; i < intersection_points.length-1; i++) {
     var [_x1, _y1] = intersection_points[i];
@@ -454,19 +454,19 @@ function generateLine(intersection_points, distance_in_pixel) {
     if (!inside)
       continue;
 
-		output_text += "plot//\n";
+    output_text += "plot//\n";
 
-		var pathTrace = [];
-		pathTrace.push(point2LatLng(_x1, _y1, map));
-		pathTrace.push(point2LatLng(_x2, _y2, map));
-		var mapPath = new google.maps.Polyline({
-			path: pathTrace,
-			geodesic: true,
-			strokeColor: '#FF0000',
-			strokeOpacity: 1.0,
-			strokeWeight: 2
-		});
-		mapPath.setMap(mapView);
+    var pathTrace = [];
+    pathTrace.push(point2LatLng(_x1, _y1, map));
+    pathTrace.push(point2LatLng(_x2, _y2, map));
+    var mapPath = new google.maps.Polyline({
+      path: pathTrace,
+      geodesic: true,
+      strokeColor: '#FF0000',
+      strokeOpacity: 1.0,
+      strokeWeight: 2
+    });
+    mapPath.setMap(mapView);
 
     var lineNorm = Math.sqrt(Math.pow(_x2-_x1, 2) + Math.pow(_y2-_y1, 2));
     var unitX = (_x2-_x1)/lineNorm;
@@ -487,7 +487,7 @@ function generateLine(intersection_points, distance_in_pixel) {
 
       var latLng = point2LatLng(x, y, map);
 
-			output_text += latLng.lat() + ", " + latLng.lng() + "\n";
+      output_text += latLng.lat() + ", " + latLng.lng() + "\n";
 
       x += adderX;
       y += adderY;
@@ -495,25 +495,25 @@ function generateLine(intersection_points, distance_in_pixel) {
       counter++;
     } while (counter <= num_counts);
 
-		x = _x2;
-		y = _y2;
+    x = _x2;
+    y = _y2;
 
     ctx.beginPath();
     ctx.arc(x, y, 2, 0, 2*Math.PI);
     ctx.closePath();
     ctx.fill();
-    
-		var latLng = point2LatLng(x, y, map);
-		
-		output_text += latLng.lat() + ", " + latLng.lng() + "\n";
-		output_text += "//plot\n\n";
+
+    var latLng = point2LatLng(x, y, map);
+
+    output_text += latLng.lat() + ", " + latLng.lng() + "\n";
+    output_text += "//plot\n\n";
 
     ctx.beginPath();
     ctx.moveTo(_x1, _y1);
     ctx.lineTo(_x2, _y2);
     ctx.stroke();
   }
-	return output_text;
+  return output_text;
 }
 
 function isPointWithinAnyPolygon(polygons, x0, y0) {
@@ -531,7 +531,7 @@ function isPointWithinPolygon(polygon, x0, y0) {
     if (x0 == x && y0 == y)
       return true;
   }
-  
+
   var vectors = [];
   for (var i = 0; i < polygon.length; i++) {
     var x = polygon[i].x;
