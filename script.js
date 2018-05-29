@@ -273,6 +273,8 @@ var angle = 0;
 var separation_distance = 2;
 var point_distance = 2;
 
+var totalDistanceCoveredInPixel = 0;
+
 function updateAngle(input) {
   angle = input;
 }
@@ -322,6 +324,19 @@ function computeDistanceInPixel(polygon, marker, dist) {
   return dist / distAct * distVirt;
 }
 
+function computeDistanceInActual(polygon, marker, dist) {
+  var distAct = getDistance(marker[0].position, marker[1].position);
+  console.log("Map distance: " + distAct);
+
+  var distVirt = Math.sqrt(
+      Math.pow(polygon[0].x - polygon[1].x, 2)
+      + Math.pow(polygon[0].y - polygon[1].y, 2)
+      );
+  console.log("Canvas distance: " + distVirt);
+
+  return dist / distVirt * distAct;
+}
+
 function generate() {
   console.log("CONTROLS");
   console.log("Sweep orientation: " + angle);
@@ -369,6 +384,9 @@ function generate() {
       break;
   }
 
+  var totalDistCoveredInActual = computeDistanceInActual(points[0], markerPoints, totalDistanceCoveredInPixel);
+  document.getElementById("totalDistanceCoveredSpan").textContent = totalDistanceCoveredInActual;
+  
   output_text += ".end";
 
   console.log("Done...");
@@ -469,6 +487,7 @@ function generateLine(intersection_points, distance_in_pixel) {
     mapPath.setMap(mapView);
 
     var lineNorm = Math.sqrt(Math.pow(_x2-_x1, 2) + Math.pow(_y2-_y1, 2));
+    totalDistanceCoveredInPixel += lineNorm;
     var unitX = (_x2-_x1)/lineNorm;
     var unitY = (_y2-_y1)/lineNorm;
     var adderX = distance_in_pixel * unitX;
