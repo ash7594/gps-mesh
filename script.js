@@ -385,7 +385,7 @@ function generate() {
   }
 
   var totalDistCoveredInActual = computeDistanceInActual(points[0], markerPoints, totalDistanceCoveredInPixel);
-  document.getElementById("totalDistanceCoveredSpan").textContent = totalDistanceCoveredInActual;
+  document.getElementById("totalDistanceCoveredSpan").textContent = totalDistCoveredInActual;
   
   output_text += ".end";
 
