@@ -3,9 +3,11 @@ var markerPoints = [];
 var markerBlockers = [];
 var points = [];
 var blockers = [];
+var polyLinesOnMaps = [];
 // 1 - Perimeter
 // 0 - Blocker
 var polygon_type = -1;
+var fileText;
 
 class PointObj {
   constructor(x, y) {
@@ -37,6 +39,7 @@ function load(evt) {
     r.onload = function(e) { 
       var text = e.target.result;
       console.log("File scanned");
+      fileText = text;
       parseFile(text);
     }
     r.readAsText(f);
@@ -86,6 +89,7 @@ function parseFile(text) {
         strokeOpacity: 1.0,
         strokeWeight: 2
       });
+      polyLinesOnMaps.push(mapPath);
       mapPath.setMap(mapView);
     }
   }
@@ -129,6 +133,7 @@ function parseFile(text) {
         strokeOpacity: 1.0,
         strokeWeight: 2
       });
+      polyLinesOnMaps.push(mapPath);
       mapPath.setMap(mapView);
     }
   }
@@ -267,6 +272,21 @@ function drawConnectors() {
   ctx.fillStyle = "rgb(0, 0, 0)";
 }
 
+function clearVars() {
+  totalDistanceCoveredInPixel = 0;
+  
+  markerPoints = [];
+  markerBlockers = [];
+  points = [];
+  blockers = [];
+
+  for (var i = 0; i < polyLinesOnMaps.length; i++) {
+    polyLinesOnMaps[i].setMap(null);
+  }
+  polyLinesOnMaps = [];
+  parseFile(fileText);
+}
+
 // CONTROLS
 
 var angle = 0;
@@ -391,6 +411,7 @@ function generate() {
   output_text += ".end";
 
   console.log("Done...");
+
   return output_text;
 }
 
@@ -485,6 +506,7 @@ function generateLine(intersection_points, distance_in_pixel) {
       strokeOpacity: 1.0,
       strokeWeight: 2
     });
+    polyLinesOnMaps.push(mapPath);
     mapPath.setMap(mapView);
 
     var lineNorm = Math.sqrt(Math.pow(_x2-_x1, 2) + Math.pow(_y2-_y1, 2));
